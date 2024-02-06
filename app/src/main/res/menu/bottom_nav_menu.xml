@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/mapMenuItem"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:icon="@drawable/map_menu_icon"
+        android:title="@string/labelMenuMap" />
+    <item
+        android:id="@+id/listMenuItem"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:icon="@drawable/list_menu_icon"
+        android:title="@string/labelMenuListSites" />
+    <item
+        android:id="@+id/categoriesMenuItem"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:icon="@drawable/category_menu_icon"
+        android:title="@string/labelMenuCategories" />
+</menu>

@@ -16,11 +16,6 @@
         android:theme="@style/Theme.SortirAMetz"
         tools:targetApi="31">
         <activity
-            android:name=".BasicLocationCircleActivity"
-            android:exported="false"
-            android:label="@string/title_activity_basic_location_circle"
-            android:theme="@style/Theme.SortirAMetz" />
-        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

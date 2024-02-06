@@ -43,4 +43,10 @@
         libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
+    <string name="buttonRecenterValue">Recentrer</string>
+    <string name="labelMenuMap">Carte</string>
+    <string name="labelMenuListSites">Sites</string>
+    <string name="labelMenuCategories">Catégories</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
