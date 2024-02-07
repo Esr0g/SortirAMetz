@@ -1,12 +1,12 @@
 package ihm.android.sortirametz;
 
+import android.os.Bundle;
+import android.util.Log;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
-
-import android.os.Bundle;
-import android.util.Log;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.mapbox.mapboxsdk.Mapbox;
@@ -29,15 +29,16 @@ public class MainActivity extends AppCompatActivity {
 
         // Permet de charger MapFragment
         if (savedInstanceState == null) {
+            Fragment mapFragment = new MapFragment();
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)
-                    .add(R.id.fragmentContainerView, MapFragment.class, null)
+                    .add(R.id.fragmentContainerView, mapFragment, "MapFragment")
                     .commit();
         }
 
-
-
-
+        // Permet de changer de fragment en fonction de l'item du menu sélectionné
+        // Ce code fait en sorte de ne pas charger de nouveau fragment si celui-ci est déjà chargé
+        // Par exemple cela permet de garder l'ancienne position de la carte si on change de fragment
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
         bottomNavigationView.setOnItemSelectedListener(item -> {
 
@@ -57,28 +58,28 @@ public class MainActivity extends AppCompatActivity {
             if (itemId == R.id.mapMenuItem) {
                 if (mapFragment == null) {
                     mapFragment = new MapFragment();
-                            transaction.setReorderingAllowed(true)
+                    transaction.setReorderingAllowed(true)
                             .add(R.id.fragmentContainerView, mapFragment, "MapFragment");
                 } else {
-                            transaction.setReorderingAllowed(true)
+                    transaction.setReorderingAllowed(true)
                             .show(mapFragment);
                 }
             } else if (itemId == R.id.listMenuItem) {
                 if (sitesFragment == null) {
                     sitesFragment = new SitesFragment();
-                            transaction.setReorderingAllowed(true)
+                    transaction.setReorderingAllowed(true)
                             .add(R.id.fragmentContainerView, sitesFragment, "SitesFragment");
                 } else {
-                            transaction.setReorderingAllowed(true)
+                    transaction.setReorderingAllowed(true)
                             .show(sitesFragment);
                 }
             } else if (itemId == R.id.categoriesMenuItem) {
                 if (categoriesFragment == null) {
                     categoriesFragment = new CategoriesFragment();
-                            transaction.setReorderingAllowed(true)
+                    transaction.setReorderingAllowed(true)
                             .add(R.id.fragmentContainerView, categoriesFragment, "CategoriesFragment");
                 } else {
-                            transaction.setReorderingAllowed(true)
+                    transaction.setReorderingAllowed(true)
                             .show(categoriesFragment);
                 }
             }

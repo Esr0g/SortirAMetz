@@ -17,6 +17,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.mapbox.geojson.Feature;
@@ -85,6 +86,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         16f),
                     1500);
                 v.setVisibility(View.INVISIBLE);
+        });
+
+        SearchView searchView = (SearchView) view.findViewById(R.id.searchView);
+        searchView.setOnClickListener(v -> {
+            searchView.setIconified(false);
         });
 
     }
