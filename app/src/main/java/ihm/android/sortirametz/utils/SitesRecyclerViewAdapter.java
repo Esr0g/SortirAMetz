@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -24,15 +25,24 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
     private final ArrayList<SiteEntity> sitesList;
     private final Context context;
     private final ButtonShowOnMapListener buttonShowOnMapListener;
+    private final CheckBoxListener checkBoxListener;
 
     public interface ButtonShowOnMapListener {
         void onButtonClick(SiteEntity site);
     }
 
-    public SitesRecyclerViewAdapter(Context context, ArrayList<SiteEntity> sitesList, ButtonShowOnMapListener buttonShowOnMapListener) {
+    public interface CheckBoxListener {
+        void onCheckBoxClick(SiteEntity site, boolean isChecked);
+    }
+
+    public SitesRecyclerViewAdapter(Context context,
+                                    ArrayList<SiteEntity> sitesList,
+                                    ButtonShowOnMapListener buttonShowOnMapListener,
+                                    CheckBoxListener checkBoxListener) {
         this.sitesList = sitesList;
         this.context = context;
         this.buttonShowOnMapListener = buttonShowOnMapListener;
+        this.checkBoxListener = checkBoxListener;
     }
 
     @NonNull
@@ -41,7 +51,7 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.site_recycler_view_row, parent, false);
 
-        return new SitesRecyclerViewAdapter.ViewHolder(view, buttonShowOnMapListener);
+        return new SitesRecyclerViewAdapter.ViewHolder(view, buttonShowOnMapListener, checkBoxListener);
     }
 
     @Override
@@ -65,14 +75,19 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
         private final TextView longitudeView;
         private final TextView resumeView;
         private final Button showOnMapButton;
+        private final CheckBox checkBox;
 
         private final ButtonShowOnMapListener buttonShowOnMapListener;
+        private final CheckBoxListener checkBoxListener;
 
-        public ViewHolder(@NonNull View itemView, ButtonShowOnMapListener buttonShowOnMapListener) {
+
+        public ViewHolder(@NonNull View itemView,
+                          ButtonShowOnMapListener buttonShowOnMapListener,
+                          CheckBoxListener checkBoxListener) {
             super(itemView);
 
             imageSiteView = itemView.findViewById(R.id.imageSiteView);
-            nomSiteView = itemView.findViewById(R.id.nomSiteView);
+            nomSiteView = itemView.findViewById(R.id.nomCategorieView);
             adresseView = itemView.findViewById(R.id.adresseView);
             categorieView = itemView.findViewById(R.id.categorieView);
             extraInfosLayout = itemView.findViewById(R.id.extraInfosLayout);
@@ -80,7 +95,10 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
             longitudeView = itemView.findViewById(R.id.longitudeView);
             resumeView = itemView.findViewById(R.id.resumeView);
             showOnMapButton = itemView.findViewById(R.id.showOnMapButton);
+            checkBox = itemView.findViewById(R.id.checkBox);
+
             this.buttonShowOnMapListener = buttonShowOnMapListener;
+            this.checkBoxListener = checkBoxListener;
 
             itemView.setOnClickListener(v -> {
                 boolean isExpanded = extraInfosLayout.getVisibility() == View.VISIBLE;
@@ -105,8 +123,14 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
             longitudeView.setText(String.valueOf(site.getSite().getLongitude()));
             resumeView.setText(site.getSite().getResume());
 
+            checkBox.setChecked(false);
+
             showOnMapButton.setOnClickListener(v -> {
                 buttonShowOnMapListener.onButtonClick(site);
+            });
+
+            checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                checkBoxListener.onCheckBoxClick(site, isChecked);
             });
         }
 

@@ -12,19 +12,20 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.PopupWindow;
 import android.widget.SearchView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
@@ -46,14 +47,16 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
+import ihm.android.sortirametz.entities.CategorieEntity;
 import ihm.android.sortirametz.entities.RawSiteEntity;
 import ihm.android.sortirametz.entities.SiteEntity;
 import ihm.android.sortirametz.model.MarkersHandler;
+import ihm.android.sortirametz.utils.FeatureBuilder;
+import ihm.android.sortirametz.utils.SiteArrayAdapter;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -79,6 +82,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         super.onViewCreated(view, savedInstanceState);
 
         mapView = view.findViewById(R.id.mapView);
+        markersHandler = new MarkersHandler();
         if (savedInstanceState != null) {
             mapView.onCreate(savedInstanceState);
         }
@@ -214,7 +218,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         });
 
         // On crée un ViewModel pour gérer les marqueurs
-        markersHandler = new MarkersHandler();
         markersHandler.getFeatures().observe(this, features -> {
             mapboxMap.getStyle(style -> {
                 style.removeLayer("sites-layer");
@@ -240,15 +243,20 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         // reste appuié on Affiche un popup qui propose soit de faire une recherche soit
         // de créer un nouveau point d'intérêt aux coordonnées cliquées
         mapboxMap.addOnMapLongClickListener(point -> {
-            showPopup(point);
+            showSelectionPopup(point);
             return true;
         });
     }
 
-    private void showPopup(LatLng point) {
+    /**
+     * Affiche un popup pour proposer à l'utilisateur de créer un nouveau point d'intérêt
+     * ou de faire une recherche
+     * @param point Coordonnées du point cliqué
+     */
+    private void showSelectionPopup(LatLng point) {
         // Popup Creation
         LayoutInflater inflater = (LayoutInflater) requireContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View popupView = inflater.inflate(R.layout.popup, null);
+        View popupView = inflater.inflate(R.layout.popup_selection, null);
 
         PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
@@ -259,6 +267,83 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         ImageButton cancelButton = popupView.findViewById(R.id.cancelButton);
         cancelButton.setOnClickListener(v -> {
             popupWindow.dismiss();
+        });
+
+        // Quand on appuie sur le bouton créer un site cela ouvre un popup pour créer un site
+        Button createSiteButton = popupView.findViewById(R.id.createPOIButton);
+        createSiteButton.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            showCreateSitePopup(point);
+        });
+
+        // Show Popup
+        popupWindow.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
+    }
+
+    /**
+     * Affiche un popup pour créer un nouveau point d'intérêt
+     * @param point Coordonnées du point cliqué
+     */
+    private void showCreateSitePopup(LatLng point) {
+        // Popup Creation
+        LayoutInflater inflater = (LayoutInflater) requireContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup_new_site, null);
+
+        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+        popupWindow.setFocusable(true);
+        popupWindow.setTouchable(true);
+
+        TextView latitudeViewPopupCreate = popupView.findViewById(R.id.latitudeViewPopupCreate);
+        TextView longitudeViewPopupCreate = popupView.findViewById(R.id.longitudeViewPopupCreate);
+        latitudeViewPopupCreate.setText(String.valueOf(point.getLatitude()));
+        longitudeViewPopupCreate.setText(String.valueOf(point.getLongitude()));
+
+        // On récupère la liste des catégorie pour les afficher dans le spinner
+        SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
+        List<CategorieEntity> categories = db.categorieDao().getAllCategories();
+        SiteArrayAdapter adapter = new SiteArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, categories);
+        Spinner spinnerCategoriePopup = popupView.findViewById(R.id.spinnerCategoriePopup);
+        spinnerCategoriePopup.setAdapter(adapter);
+
+
+        // Quand on appuie sur le bouton cancel cela ferma le popup
+        ImageButton cancelButton = popupView.findViewById(R.id.cancelButton);
+        cancelButton.setOnClickListener(v -> {
+            popupWindow.dismiss();
+        });
+
+        // Quand on appuie sur le bouton créer un site cela crée un nouveau site
+        Button createSiteButton = popupView.findViewById(R.id.createSiteButton);
+        createSiteButton.setOnClickListener(v -> {
+            EditText editNomSitePopup = popupView.findViewById(R.id.editNomSitePopup);
+            EditText editAdresseSitePopup = popupView.findViewById(R.id.editAdresseSitePopup);
+            EditText editResumeSitePopup = popupView.findViewById(R.id.editResumeSitePopup);
+
+            if (editNomSitePopup.getText().toString().isEmpty() ||
+                    editAdresseSitePopup.getText().toString().isEmpty() ||
+                    editResumeSitePopup.getText().toString().isEmpty()) {
+                Toast.makeText(requireContext(), "Veuillez remplir tous les champs", Toast.LENGTH_SHORT).show();
+            } else {
+                int categorieId = ((CategorieEntity) spinnerCategoriePopup.getSelectedItem()).getId();
+                String nomCategorie = ((CategorieEntity) spinnerCategoriePopup.getSelectedItem()).getNom();
+
+                RawSiteEntity site = new RawSiteEntity();
+                site.setNom(editNomSitePopup.getText().toString());
+                site.setAdresse(editAdresseSitePopup.getText().toString());
+                site.setResume(editResumeSitePopup.getText().toString());
+                site.setLatitude(point.getLatitude());
+                site.setLongitude(point.getLongitude());
+                site.setIdCategorie(categorieId);
+                db.siteDao().insertSites(site);
+                
+                markersHandler.removeAllMarkers();
+                FeatureBuilder featureBuilder = new FeatureBuilder();
+                SiteEntity siteEntity = new SiteEntity(site, new CategorieEntity(categorieId, nomCategorie));
+                markersHandler.addMarker(featureBuilder.buildSiteFeature(siteEntity));
+                zoomOnSite(siteEntity);
+                popupWindow.dismiss();
+            }
         });
 
         // Show Popup

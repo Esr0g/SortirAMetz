@@ -1,6 +1,7 @@
 package ihm.android.sortirametz.dao;
 
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Transaction;
@@ -37,4 +38,11 @@ public interface SiteDao {
     @Transaction
     @Query("SELECT * FROM SITES")
     List<SiteEntity> getAllSites();
+
+    /**
+     * Suppression de la liste des sites
+     */
+    @Delete
+    void deleteSites(List<RawSiteEntity> sites);
+
 }

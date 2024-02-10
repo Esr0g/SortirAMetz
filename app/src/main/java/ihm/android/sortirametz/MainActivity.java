@@ -25,10 +25,9 @@ public class MainActivity extends AppCompatActivity {
         Mapbox.getInstance(this);
         setContentView(R.layout.activity_main);
 
-        setUpdatabase();
-
         // Permet de charger MapFragment
         if (savedInstanceState == null) {
+            setUpdatabase();
             Fragment mapFragment = new MapFragment();
             getSupportFragmentManager().beginTransaction()
                     .setReorderingAllowed(true)

@@ -46,19 +46,16 @@ public class CateogriesRecyclerViewAdapter extends RecyclerView.Adapter<Cateogri
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
 
-        private final ImageView imageSiteView;
-        private final TextView nomSiteView;
+        private final TextView nomCategorieView;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
 
-            imageSiteView = itemView.findViewById(R.id.imageSiteView);
-            nomSiteView = itemView.findViewById(R.id.nomSiteView);
+            nomCategorieView = itemView.findViewById(R.id.nomCategorieView);
         }
 
         public void bind(CategorieEntity categorie) {
-            //imageSiteView.setImageResource(R.drawable.location_icon);
-            nomSiteView.setText(categorie.getNom());
+            nomCategorieView.setText(categorie.getNom());
         }
     }
 }

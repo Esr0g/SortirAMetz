@@ -29,6 +29,12 @@ public class CategorieEntity {
         this.nom = nom;
     }
 
+    @Ignore
+    public CategorieEntity(int id, String nom) {
+        this.nom = nom;
+        this.id = id;
+    }
+
     /**
      * Definition des getters et setters de chaque attributs (Important pour le bon fonctionnement
      * de Room)

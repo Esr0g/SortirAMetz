@@ -34,15 +34,28 @@ public class FeatureBuilder {
         return this;
     }
 
+    public FeatureBuilder setAdresse(String adresse) {
+        this.feature.addStringProperty("adresse", adresse);
+        return this;
+    }
+
+    public FeatureBuilder setIdCategorie(int idCategorie) {
+        this.feature.addNumberProperty("idCategorie", idCategorie);
+        return this;
+    }
+
     public Feature build() {
         return this.feature;
     }
 
-    public Feature buildSite(SiteEntity site) {
+    public Feature buildSiteFeature(SiteEntity site) {
         return initateFeature(site.getSite().getLatitude(), site.getSite().getLongitude())
+                .setSiteId(site.getSite().getId())
                 .setNom(site.getSite().getNom())
                 .setCategorie(site.getCategorie().getNom())
                 .setResume(site.getSite().getResume())
+                .setAdresse(site.getSite().getAdresse())
+                .setIdCategorie(site.getCategorie().getId())
                 .build();
     }
 }
