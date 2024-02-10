@@ -15,7 +15,7 @@ import ihm.android.sortirametz.dao.CategorieDao;
 import ihm.android.sortirametz.dao.SiteDao;
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
 import ihm.android.sortirametz.entities.CategorieEntity;
-import ihm.android.sortirametz.entities.SiteEntity;
+import ihm.android.sortirametz.entities.RawSiteEntity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -56,20 +56,15 @@ public class MainActivity extends AppCompatActivity {
             // Permet de changer de fragment en fonction de l'item du menu sélectionné
             int itemId = item.getItemId();
             if (itemId == R.id.mapMenuItem) {
-                if (mapFragment == null) {
-                    mapFragment = new MapFragment();
-                    transaction.setReorderingAllowed(true)
-                            .add(R.id.fragmentContainerView, mapFragment, "MapFragment");
-                } else {
                     transaction.setReorderingAllowed(true)
                             .show(mapFragment);
-                }
             } else if (itemId == R.id.listMenuItem) {
                 if (sitesFragment == null) {
                     sitesFragment = new SitesFragment();
                     transaction.setReorderingAllowed(true)
                             .add(R.id.fragmentContainerView, sitesFragment, "SitesFragment");
                 } else {
+                    sitesFragment.refresh();
                     transaction.setReorderingAllowed(true)
                             .show(sitesFragment);
                 }
@@ -79,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
                     transaction.setReorderingAllowed(true)
                             .add(R.id.fragmentContainerView, categoriesFragment, "CategoriesFragment");
                 } else {
+                    categoriesFragment.refresh();
                     transaction.setReorderingAllowed(true)
                             .show(categoriesFragment);
                 }
@@ -106,9 +102,9 @@ public class MainActivity extends AppCompatActivity {
         categorieDao.insertCategories(categorie2);
         categorieDao.insertCategories(categorie3);
 
-        SiteEntity site1 = new SiteEntity("Marché St Livier", 49.10058640470544, 6.171153485708678, "Rue Saint Livier 57000 Metz", 1, "Marché Saint-Livier");
-        SiteEntity site2 = new SiteEntity("Boulangerie Pâtisserie \"Wozniak\"", 49.1001628326097, 6.170289309395522, "11 Rue Saint-Livier, 57000 Metz", 2, "Ceci est une boulangerie");
-        SiteEntity site3 = new SiteEntity("Flair'Allure", 49.10020375455887, 6.170567197764935, "19 Rue Saint-Livier, 57000 Metz", 3, "S'occupe de iench");
+        RawSiteEntity site1 = new RawSiteEntity("Marché St Livier", 49.10058640470544, 6.171153485708678, "Rue Saint Livier 57000 Metz", 1, "Marché Saint-Livier");
+        RawSiteEntity site2 = new RawSiteEntity("Boulangerie Pâtisserie \"Wozniak\"", 49.1001628326097, 6.170289309395522, "11 Rue Saint-Livier, 57000 Metz", 2, "Ceci est une boulangerie");
+        RawSiteEntity site3 = new RawSiteEntity("Flair'Allure", 49.10020375455887, 6.170567197764935, "19 Rue Saint-Livier, 57000 Metz", 3, "S'occupe de iench");
 
         siteDao.insertSites(site1);
         siteDao.insertSites(site2);

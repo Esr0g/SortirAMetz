@@ -1,10 +1,10 @@
 package ihm.android.sortirametz;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.icu.number.Precision;
 import android.location.Location;
 import android.os.Bundle;
 
@@ -13,11 +13,15 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.PopupWindow;
 import android.widget.SearchView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.mapbox.geojson.Feature;
@@ -47,7 +51,9 @@ import java.util.List;
 import java.util.Objects;
 
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
+import ihm.android.sortirametz.entities.RawSiteEntity;
 import ihm.android.sortirametz.entities.SiteEntity;
+import ihm.android.sortirametz.model.MarkersHandler;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -56,6 +62,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private LocationComponent locationComponent;
     private MapboxMap mapboxMap;
     private Button centerOnUserButton;
+    private MarkersHandler markersHandler;
 
     public MapFragment() {
         // Constructeur vide requis
@@ -184,47 +191,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                     }
             );
 
-            // Affiche les points d'intérêt présent dans la base de données
-            SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(getContext());
-            List<SiteEntity> sites = db.siteDao().getAllSites();
-
-            // Ici on récupère l'icône par défaut de Mapbox
-            Bitmap markerBitmap = BitmapFactory.decodeResource(getResources(), com.mapbox.mapboxsdk.R.drawable.maplibre_marker_icon_default);
+            // Ici on récupère l'icône par défaut de Mapbox pour les POI
+            Bitmap markerBitmap = BitmapFactory.decodeResource(getResources(),
+                    com.mapbox.mapboxsdk.R.drawable.maplibre_marker_icon_default);
             style.addImage("marker-icon", markerBitmap);
-
-            List<Feature> features = new ArrayList<>();
-
-            for (SiteEntity site : sites) {
-                Feature feature = Feature.fromGeometry(Point.fromLngLat(site.getLongitude(), site.getLatitude()));
-                feature.addStringProperty("nom", site.getNom());
-
-                features.add(feature);
-            }
-
-            style.addSource(new GeoJsonSource("sites-source", FeatureCollection.fromFeatures(features)));
-
-            SymbolLayer sitesLayer = new SymbolLayer("sites-layer", "sites-source")
-                    .withProperties(
-                            PropertyFactory.iconImage("marker-icon"),
-                            PropertyFactory.iconSize(1.4f),
-                            PropertyFactory.textField("{nom}"),
-                            PropertyFactory.iconAllowOverlap(true),
-                            PropertyFactory.textAllowOverlap(true),
-                            PropertyFactory.textOffset(new Float[] {0f, -2.5f})
-                    );
-
-            style.addLayer(sitesLayer);
         });
 
         // Lorsque la caméra n'est plus centrée sur l'utilisateur on affiche
-        // un bouton pour recentrer la caméra
+        // un bouton pour recentrer la caméra sur la position de l'utilisateur
         mapboxMap.addOnCameraIdleListener(() -> {
             mapboxMap.getStyle(style -> {
-                double precision = 0.00000000000001d;
-                double cameraLatitude = Math.round(mapboxMap.getCameraPosition().target.getLatitude() * 10000000.0) / 10000000.0;
-                double cameraLongitude = Math.round(mapboxMap.getCameraPosition().target.getLongitude() * 10000000.0) / 10000000.0;
-                double userLatitude = Math.round(mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude() * 10000000.0) / 10000000.0;
-                double userLongitude = Math.round(mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude() * 10000000.0) / 10000000.0;
+                double precision = 10000000.0;
+                double cameraLatitude = Math.round(mapboxMap.getCameraPosition().target.getLatitude() * precision) / precision;
+                double cameraLongitude = Math.round(mapboxMap.getCameraPosition().target.getLongitude() * precision) / precision;
+                double userLatitude = Math.round(mapboxMap.getLocationComponent().getLastKnownLocation().getLatitude() * precision) / precision;
+                double userLongitude = Math.round(mapboxMap.getLocationComponent().getLastKnownLocation().getLongitude() * precision) / precision;
 
                 if (cameraLatitude != userLatitude || cameraLongitude != userLongitude) {
                     centerOnUserButton.setVisibility(View.VISIBLE);
@@ -232,6 +213,56 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             });
         });
 
+        // On crée un ViewModel pour gérer les marqueurs
+        markersHandler = new MarkersHandler();
+        markersHandler.getFeatures().observe(this, features -> {
+            mapboxMap.getStyle(style -> {
+                style.removeLayer("sites-layer");
+                style.removeSource("sites-source");
+
+                style.addSource(new GeoJsonSource("sites-source", FeatureCollection.fromFeatures(features)));
+
+                SymbolLayer sitesLayer = new SymbolLayer("sites-layer", "sites-source")
+                        .withProperties(
+                                PropertyFactory.iconImage("marker-icon"),
+                                PropertyFactory.iconSize(1.4f),
+                                PropertyFactory.textField("{nom}"),
+                                PropertyFactory.iconAllowOverlap(true),
+                                PropertyFactory.textAllowOverlap(true),
+                                PropertyFactory.textOffset(new Float[] {0f, -2.5f})
+                        );
+
+                style.addLayer(sitesLayer);
+            });
+        });
+        
+        // On ajoute un listener pour les clics long sur la map. L'orsque l'utilisateur
+        // reste appuié on Affiche un popup qui propose soit de faire une recherche soit
+        // de créer un nouveau point d'intérêt aux coordonnées cliquées
+        mapboxMap.addOnMapLongClickListener(point -> {
+            showPopup(point);
+            return true;
+        });
+    }
+
+    private void showPopup(LatLng point) {
+        // Popup Creation
+        LayoutInflater inflater = (LayoutInflater) requireContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup, null);
+
+        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+        popupWindow.setFocusable(true);
+        popupWindow.setTouchable(true);
+
+        // Quand on appuie sur le bouton cancel cela ferma le popup
+        ImageButton cancelButton = popupView.findViewById(R.id.cancelButton);
+        cancelButton.setOnClickListener(v -> {
+            popupWindow.dismiss();
+        });
+
+        // Show Popup
+        popupWindow.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
     }
 
     /**
@@ -268,6 +299,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         double numberOfTiles = Math.pow(2, zoom);
         double metersPerPixel = Math.cos(latitudeRadians) * earthCircumference / (256 * numberOfTiles);
         return meters / metersPerPixel;
+    }
+
+    /**
+     * Permet de zoomer sur un site
+     * @param site Site à zoomer
+     */
+    public void zoomOnSite(SiteEntity site) {
+        mapboxMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                        new LatLng(site.getSite().getLatitude(), site.getSite().getLongitude()),
+                        16f),
+                1500);
+    }
+
+    public MarkersHandler getMarkersHandler() {
+        return markersHandler;
     }
 
     @Override

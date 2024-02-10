@@ -1,4 +1,4 @@
-package ihm.android.sortirametz;
+package ihm.android.sortirametz.utils;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -12,8 +12,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 
+import ihm.android.sortirametz.R;
 import ihm.android.sortirametz.entities.CategorieEntity;
-import ihm.android.sortirametz.entities.SiteEntity;
 
 public class CateogriesRecyclerViewAdapter extends RecyclerView.Adapter<CateogriesRecyclerViewAdapter.ViewHolder> {
 

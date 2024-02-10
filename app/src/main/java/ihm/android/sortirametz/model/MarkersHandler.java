@@ -4,7 +4,6 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.mapbox.geojson.Feature;
-import com.mapbox.geojson.FeatureCollection;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,11 +29,11 @@ public class MarkersHandler extends ViewModel {
         this.features.setValue(tmpFeatures);
     }
 
-    public void removerAllMarkers() {
+    public void removeAllMarkers() {
         this.features.setValue(new ArrayList<>());
     }
 
-    public FeatureCollection getFeaturesCollection() {
-        return FeatureCollection.fromFeatures(Objects.requireNonNull(features.getValue()));
+    public MutableLiveData<List<Feature>> getFeatures() {
+        return features;
     }
 }

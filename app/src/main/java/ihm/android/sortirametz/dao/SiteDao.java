@@ -7,6 +7,7 @@ import androidx.room.Transaction;
 
 import java.util.List;
 
+import ihm.android.sortirametz.entities.RawSiteEntity;
 import ihm.android.sortirametz.entities.SiteEntity;
 
 /**
@@ -21,12 +22,19 @@ public interface SiteDao {
      */
     @Transaction
     @Insert
-    void insertSites(SiteEntity site);
+    void insertSites(RawSiteEntity site);
 
     /**
-     * Récupération de tous les sites
+     * Récupération de tous les sites avec l'id de la catégorie seulement
      * @return la liste des sites
      */
     @Query("SELECT * FROM sites")
+    List<RawSiteEntity> getAllRawSites();
+
+    /**
+     * Récupération de tous les sites avec leur catégorie
+     */
+    @Transaction
+    @Query("SELECT * FROM SITES")
     List<SiteEntity> getAllSites();
 }
