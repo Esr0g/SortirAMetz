@@ -44,6 +44,11 @@ public class CategorieEntity implements SearchableItem {
         return id;
     }
 
+    @Override
+    public EntityType getType() {
+        return EntityType.Category;
+    }
+
     public void setId(int newId) {
         id = newId;
     }

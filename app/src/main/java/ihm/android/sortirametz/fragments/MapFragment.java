@@ -2,18 +2,14 @@ package ihm.android.sortirametz.fragments;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.PointF;
 import android.location.Location;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -29,20 +25,31 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.LocationComponentOptions;
+import com.mapbox.mapboxsdk.location.engine.LocationEngineCallback;
 import com.mapbox.mapboxsdk.location.engine.LocationEngineRequest;
+import com.mapbox.mapboxsdk.location.engine.LocationEngineResult;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.permissions.PermissionsListener;
 import com.mapbox.mapboxsdk.location.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
+import com.mapbox.mapboxsdk.maps.Projection;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.style.layers.CircleLayer;
 import com.mapbox.mapboxsdk.style.layers.Property;
@@ -53,11 +60,13 @@ import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import ihm.android.sortirametz.BuildConfig;
 import ihm.android.sortirametz.R;
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
 import ihm.android.sortirametz.entities.CategorieEntity;
+import ihm.android.sortirametz.entities.EntityType;
 import ihm.android.sortirametz.entities.RawSiteEntity;
 import ihm.android.sortirametz.entities.SearchableItem;
 import ihm.android.sortirametz.entities.SiteEntity;
@@ -65,6 +74,7 @@ import ihm.android.sortirametz.model.MarkersHandler;
 import ihm.android.sortirametz.model.Parameters;
 import ihm.android.sortirametz.utils.CustomCursorAdapter;
 import ihm.android.sortirametz.utils.FeatureBuilder;
+import ihm.android.sortirametz.utils.Pair;
 import ihm.android.sortirametz.utils.SiteArrayAdapter;
 
 public class MapFragment extends Fragment implements OnMapReadyCallback {
@@ -76,6 +86,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private Button centerOnUserButton;
     private MarkersHandler markersHandler;
     private Parameters parameters;
+    private Pair<Integer, EntityType> currentSearchItem;
+    private boolean searchFromLocation = true;
 
     public MapFragment() {
         // Constructeur vide requis
@@ -106,12 +118,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         centerOnUserButton = (Button) view.findViewById(R.id.centerOnUserButton);
         centerOnUserButton.setOnClickListener(v -> {
-                mapboxMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                        new LatLng(Objects.requireNonNull(locationComponent.getLastKnownLocation()).getLatitude(),
-                                locationComponent.getLastKnownLocation().getLongitude()),
-                        16f),
+            mapboxMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                            new LatLng(Objects.requireNonNull(locationComponent.getLastKnownLocation()).getLatitude(),
+                                    locationComponent.getLastKnownLocation().getLongitude()),
+                            16f),
                     1500);
-                v.setVisibility(View.INVISIBLE);
+            v.setVisibility(View.INVISIBLE);
         });
 
         SearchView searchView = (SearchView) view.findViewById(R.id.searchView);
@@ -152,6 +164,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     /**
      * Méthode appelée lorsque la carte est prête
+     *
      * @param mapboxMap Carte Mapbox
      */
     @SuppressLint("MissingPermission")
@@ -172,10 +185,26 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             locationComponent.setCameraMode(CameraMode.TRACKING);
             locationComponent.forceLocationUpdate(lastKnownLocation);
 
+            // A chaque fois que la localisation de l'utilisateur change et qu'une recherche est active
+            // alors on met à jours les marqueurs
+            locationComponent.getLocationEngine().requestLocationUpdates(
+                    locationComponentActivationOptions.locationEngineRequest(),
+                    new LocationEngineCallback<LocationEngineResult>() {
+                        @Override
+                        public void onSuccess(LocationEngineResult result) {
+                            showSiteFromCategoryOnMap();
+                        }
+
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            // Ici on ne fait rien
+                        }
+                    }, requireActivity().getMainLooper());
+
             // Positionner la caméra sur la position de l'utilisateur au démarrage aveec un zoom
             mapboxMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                    new LatLng(Objects.requireNonNull(locationComponent.getLastKnownLocation()).getLatitude(), locationComponent.getLastKnownLocation().getLongitude()),
-                    16f),
+                            new LatLng(Objects.requireNonNull(locationComponent.getLastKnownLocation()).getLatitude(), locationComponent.getLastKnownLocation().getLongitude()),
+                            16f),
                     2500,
                     new MapboxMap.CancelableCallback() {
 
@@ -187,24 +216,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
                         @Override
                         public void onFinish() {
-                            Point position = Point.fromLngLat(locationComponent.getLastKnownLocation().getLongitude(),
-                                    locationComponent.getLastKnownLocation().getLatitude()); // Remplacez par vos coordonnées actuelles
-                            GeoJsonSource geoJsonSource = new GeoJsonSource("source-id", position);
-                            style.addSource(geoJsonSource);
-
-                            double radiusInPixels = metersToPixelsAtZoom(50,
-                                    Objects.requireNonNull(mapboxMap.getLocationComponent().getLastKnownLocation()),
-                                    mapboxMap.getCameraPosition().zoom);
-
-                            CircleLayer circleLayer = new CircleLayer("circle-layer-id", "source-id");
-                            circleLayer.setProperties(
-                                    PropertyFactory.circleRadius((float) radiusInPixels),
-                                    PropertyFactory.circleColor(Color.parseColor("#FF0000")),
-                                    PropertyFactory.visibility(Property.VISIBLE),
-                                    PropertyFactory.circleOpacity(0.2f)
-                            );
-
-                            style.addLayer(circleLayer);
                             centerOnUserButton.setVisibility(View.INVISIBLE);
                         }
                     }
@@ -248,18 +259,19 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                                 PropertyFactory.textField("{nom}"),
                                 PropertyFactory.iconAllowOverlap(true),
                                 PropertyFactory.textAllowOverlap(true),
-                                PropertyFactory.textOffset(new Float[] {0f, -2.5f})
+                                PropertyFactory.textOffset(new Float[]{0f, -2.5f})
                         );
 
                 style.addLayer(sitesLayer);
             });
         });
-        
+
         // On ajoute un listener pour les clics long sur la map. L'orsque l'utilisateur
         // reste appuié on Affiche un popup qui propose soit de faire une recherche soit
         // de créer un nouveau point d'intérêt aux coordonnées cliquées
         mapboxMap.addOnMapLongClickListener(point -> {
             showSelectionPopup(point);
+            ((ImageButton) requireView().findViewById(R.id.cancelButton)).performClick();
             return true;
         });
 
@@ -270,6 +282,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             showSetSearchRadiusPopup();
         });
 
+        // Cette partie permet de Setup la complétion automatique de la barre de recherche
         SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
         db.siteDao().getAllSitesLiveData().observe(this, sites -> {
             this.updateSearchCompletion();
@@ -278,18 +291,160 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             this.updateSearchCompletion();
         });
 
+        SearchView searchView = requireView().findViewById(R.id.searchView);
+        searchView.setOnSuggestionListener(new SearchView.OnSuggestionListener() {
+            @Override
+            public boolean onSuggestionSelect(int i) {
+                return true;
+            }
+
+            @Override
+            public boolean onSuggestionClick(int i) {
+                Cursor cursor = searchView.getSuggestionsAdapter().getCursor();
+                if (cursor != null && cursor.moveToPosition(i)) {
+                    String selectedSuggestion = cursor.getString(cursor.getColumnIndexOrThrow("name"));
+                    int entityId = cursor.getInt(cursor.getColumnIndexOrThrow("id_on_table"));
+                    EntityType entityType = EntityType.values()[cursor.getInt(cursor.getColumnIndexOrThrow("entity_type"))];
+                    currentSearchItem = new Pair<>(entityId, entityType);
+                    searchView.setQuery(selectedSuggestion, true);
+                }
+                return false;
+            }
+        });
+
+        // Quand la recherche est effectuée si c'et un site on l'affiche, sinon si c'est une catégorie
+        // on affiche tous les point d'intéret dans le rayon défini dans les paramètres
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                if (currentSearchItem != null) {
+                    switch (currentSearchItem.getSecond()) {
+                        case Site:
+                            SiteEntity siteEntity = db.siteDao().getById(currentSearchItem.getFirst());
+                            FeatureBuilder featureBuilder = new FeatureBuilder();
+                            Feature feature = featureBuilder.buildSiteFeature(siteEntity);
+                            markersHandler.removeAllMarkers();
+                            markersHandler.addMarker(feature);
+                            zoomOnSite(siteEntity);
+                            currentSearchItem = null;
+                        case Category:
+                            showSiteFromCategoryOnMap();
+                    }
+
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                return true;
+            }
+        });
+
+    }
+
+    // Cette fonction permet d'afficher un cercle ainsi que tous les POI dans un périmètre
+    // défini dans les paramètres
+    private void showSiteFromCategoryOnMap() {
+        if (currentSearchItem != null) {
+            SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
+            List<SiteEntity> allSiteEntities = db.siteDao().getAllSitesOfCategoryId(currentSearchItem.getFirst());
+
+            // On récupère que les site
+            List<SiteEntity> filteredSiteEntities = allSiteEntities
+                    .stream()
+                    .filter(site -> {
+                        Location siteLoctaion = new Location("provider");
+                        siteLoctaion.setLatitude(site.getSite().getLatitude());
+                        siteLoctaion.setLongitude(site.getSite().getLongitude());
+                        float distance = mapboxMap.getLocationComponent().getLastKnownLocation().distanceTo(siteLoctaion);
+                        Log.i("msg", "Distance : " + distance);
+                        return distance <= parameters.getSearchRadius().getValue();
+                    }).collect(Collectors.toList());
+
+            markersHandler.removeAllMarkers();
+            FeatureBuilder featureBuilder = new FeatureBuilder();
+            for (SiteEntity site : filteredSiteEntities) {
+                markersHandler.addMarker(featureBuilder.buildSiteFeature(site));
+            }
+
+            showSearchZone();
+        }
+    }
+
+    private void showSearchZone() {
+        mapboxMap.getStyle(style -> {
+            style.removeLayer("circle-layer-id");
+            style.removeSource("source-id");
+            Point position = Point.fromLngLat(locationComponent.getLastKnownLocation().getLongitude(),
+                    locationComponent.getLastKnownLocation().getLatitude()); // Remplacez par vos coordonnées actuelles
+            GeoJsonSource geoJsonSource = new GeoJsonSource("source-id", position);
+            style.addSource(geoJsonSource);
+
+            double radiusInPixels = calculatedRadius(parameters.getSearchRadius().getValue());
+
+            CircleLayer circleLayer = new CircleLayer("circle-layer-id", "source-id");
+            circleLayer.setProperties(
+                    PropertyFactory.circleRadius((float) radiusInPixels),
+                    PropertyFactory.circleColor(Color.parseColor("#379EF5")),
+                    PropertyFactory.visibility(Property.VISIBLE),
+                    PropertyFactory.circleOpacity(0.1f)
+            );
+
+            style.addLayer(circleLayer);
+        });
+
+        showSearchInfoPopup();
+    }
+
+    private void showSearchInfoPopup() {
+        requireView().findViewById(R.id.searchInfo).setVisibility(View.VISIBLE);
+        String from = "";
+        if (searchFromLocation) {
+            from = "depuis votre position";
+        } else {
+            from = "depuis la position sélectionnée";
+        }
+        CharSequence sequence = ((SearchView) requireView().findViewById(R.id.searchView)).getQuery();
+        ((TextView)requireView().findViewById(R.id.searchContentText)).setText("Recherche de '" + sequence + "' dans un rayon de " + parameters.getSearchRadius().getValue() + " mètres " + from);
+        requireView().findViewById(R.id.cancelButton).setOnClickListener(v -> {
+            requireView().findViewById(R.id.searchInfo).setVisibility(View.INVISIBLE);
+            currentSearchItem = null;
+            markersHandler.removeAllMarkers();
+            ((SearchView) requireView().findViewById(R.id.searchView)).setQuery("", false);
+            ((SearchView) requireView().findViewById(R.id.searchView)).clearFocus();
+            hideSearchZone();
+        });
+    }
+
+    private void hideSearchZone() {
+        mapboxMap.getStyle(style -> {
+            style.removeLayer("circle-layer-id");
+            style.removeSource("source-id");
+        });
+    }
+
+    private double calculatedRadius(double meters) {
+        CameraPosition cameraPosition = mapboxMap.getCameraPosition();
+        Projection projection = mapboxMap.getProjection();
+        LatLng target = cameraPosition.target;
+
+        double metersPerPixel = projection.getMetersPerPixelAtLatitude(target.getLatitude());
+
+        return meters / metersPerPixel;
     }
 
     private void updateSearchCompletion() {
         SearchView searchView = requireView().findViewById(R.id.searchView);
-        MatrixCursor cursor = new MatrixCursor(new String[]{"_id", "nom_site"});
+        MatrixCursor cursor = new MatrixCursor(new String[]{"_id", "name", "id_on_table", "entity_type"});
         SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
         List<SearchableItem> searchableItemList = new ArrayList<>();
         searchableItemList.addAll(db.categorieDao().getAllCategories());
         searchableItemList.addAll(db.siteDao().getAllSites());
 
+        int id = 0;
         for (SearchableItem item : searchableItemList) {
-            cursor.addRow(new Object[]{item.getId(), item.getNom()});
+            cursor.addRow(new Object[]{id++, item.getNom(), item.getId(), item.getType().ordinal()});
         }
 
         CustomCursorAdapter adapter = new CustomCursorAdapter(requireContext(), cursor);
@@ -299,6 +454,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     /**
      * Affiche un popup pour proposer à l'utilisateur de créer un nouveau point d'intérêt
      * ou de faire une recherche
+     *
      * @param point Coordonnées du point cliqué
      */
     private void showSelectionPopup(LatLng point) {
@@ -330,6 +486,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     /**
      * Affiche un popup pour créer un nouveau point d'intérêt
+     *
      * @param point Coordonnées du point cliqué
      */
     private void showCreateSitePopup(LatLng point) {
@@ -384,7 +541,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 site.setLongitude(point.getLongitude());
                 site.setIdCategorie(categorieId);
                 db.siteDao().insertSites(site);
-                
+
                 markersHandler.removeAllMarkers();
                 FeatureBuilder featureBuilder = new FeatureBuilder();
                 SiteEntity siteEntity = new SiteEntity(site, new CategorieEntity(categorieId, nomCategorie));
@@ -455,7 +612,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     /**
      * Permet de construire les options d'activation du composant de localisation
-     * @param style Style de la carte
+     *
+     * @param style                    Style de la carte
      * @param locationComponentOptions Options du composant de localisation
      * @return Options d'activation du composant de localisation
      */
@@ -475,22 +633,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     /**
-     * Permet de convertir des mètres en pixels en fonction du zoom sur la carte
-     * @param meters Nombre de mètres
-     * @param lastKnownLocation Dernière position connue
-     * @param zoom Niveau de zoom
-     * @return Nombre de pixels
-     */
-    private double metersToPixelsAtZoom(double meters, Location lastKnownLocation, double zoom) {
-        double earthCircumference = 40075017; // Circonférence de la Terre en mètres
-        double latitudeRadians = Math.toRadians(lastKnownLocation.getLatitude());
-        double numberOfTiles = Math.pow(2, zoom);
-        double metersPerPixel = Math.cos(latitudeRadians) * earthCircumference / (256 * numberOfTiles);
-        return meters / metersPerPixel;
-    }
-
-    /**
      * Permet de zoomer sur un site
+     *
      * @param site Site à zoomer
      */
     public void zoomOnSite(SiteEntity site) {

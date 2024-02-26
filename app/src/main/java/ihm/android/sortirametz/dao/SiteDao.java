@@ -37,11 +37,11 @@ public interface SiteDao {
      * Récupération de tous les sites avec leur catégorie
      */
     @Transaction
-    @Query("SELECT * FROM SITES ORDER BY nom_site")
+    @Query("SELECT * FROM sites ORDER BY nom_site")
     List<SiteEntity> getAllSites();
 
     @Transaction
-    @Query("SELECT * FROM SITES ORDER BY nom_site")
+    @Query("SELECT * FROM sites ORDER BY nom_site")
     LiveData<List<SiteEntity>> getAllSitesLiveData();
     /**
      * Suppression de la liste des sites
@@ -49,4 +49,11 @@ public interface SiteDao {
     @Delete
     void deleteSites(List<RawSiteEntity> sites);
 
+    @Transaction
+    @Query("SELECT * FROM sites WHERE id_site=:id")
+    SiteEntity getById(int id);
+
+    @Transaction
+    @Query("SELECT * FROM sites WHERE id_categorie=:id")
+    List<SiteEntity> getAllSitesOfCategoryId(int id);
 }

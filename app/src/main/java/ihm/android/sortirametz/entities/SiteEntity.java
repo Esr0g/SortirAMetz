@@ -1,5 +1,6 @@
 package ihm.android.sortirametz.entities;
 
+import androidx.annotation.NonNull;
 import androidx.room.Embedded;
 import androidx.room.Ignore;
 import androidx.room.Relation;
@@ -46,5 +47,18 @@ public class SiteEntity implements SearchableItem {
     @Override
     public int getId() {
         return site.getId();
+    }
+
+    @Override
+    public EntityType getType() {
+        return EntityType.Site;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "[" + site.getId() + "," + site.getNom() + ","
+                + site.getLatitude() + "," + site.getLongitude() + ","
+                + site.getAdresse() + "," + categorie.toString() + "," + site.getResume() + "]";
     }
 }

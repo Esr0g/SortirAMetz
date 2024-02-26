@@ -73,6 +73,7 @@ public class SitesFragment extends Fragment {
             ((BottomNavigationView)requireActivity().findViewById(R.id.bottomNavigationView)).setSelectedItemId(R.id.mapMenuItem);
             MapFragment mapFragment = (MapFragment) requireActivity().getSupportFragmentManager().findFragmentByTag("MapFragment");
 
+            mapFragment.requireView().findViewById(R.id.cancelButton).performClick();
             mapFragment.getMarkersHandler().removeAllMarkers();
             FeatureBuilder builder = new FeatureBuilder();
             Feature feature = builder.buildSiteFeature(site);

@@ -3,14 +3,19 @@ package ihm.android.sortirametz.utils;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CursorAdapter;
 import android.widget.FilterQueryProvider;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.Locale;
+
+import ihm.android.sortirametz.R;
+import ihm.android.sortirametz.entities.EntityType;
 
 public class CustomCursorAdapter extends CursorAdapter implements FilterQueryProvider {
 
@@ -25,13 +30,23 @@ public class CustomCursorAdapter extends CursorAdapter implements FilterQueryPro
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup viewGroup) {
         LayoutInflater layoutInflater = LayoutInflater.from(context);
-        return layoutInflater.inflate(android.R.layout.simple_list_item_1, viewGroup, false);
+        return layoutInflater.inflate(R.layout.searchable_item, viewGroup, false);
     }
 
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
-        String itemName = cursor.getString(cursor.getColumnIndexOrThrow("nom_site"));
-        ((TextView) view.findViewById(android.R.id.text1)).setText(itemName);
+        String itemName = cursor.getString(cursor.getColumnIndexOrThrow("name"));
+        ((TextView) view.findViewById(R.id.nameFieldView)).setText(itemName);
+        EntityType entityType = EntityType.values()[cursor.getInt(cursor.getColumnIndexOrThrow("entity_type"))];
+
+        switch (entityType) {
+            case Site:
+                ((ImageView) view.findViewById(R.id.iconView)).setImageResource(R.drawable.location_icon);
+                break;
+            case Category:
+                ((ImageView) view.findViewById(R.id.iconView)).setImageResource(R.drawable.categorie_icon);
+                break;
+        }
     }
 
     @Override
@@ -42,9 +57,11 @@ public class CustomCursorAdapter extends CursorAdapter implements FilterQueryPro
             int id = 0;
             for (int i = 0; i < cursor.getCount(); i++) {
                 cursor.moveToPosition(i);
-                String itemName = cursor.getString(cursor.getColumnIndex("nom_site"));
+                String itemName = cursor.getString(cursor.getColumnIndex("name"));
+                int idOnTable = cursor.getInt(cursor.getColumnIndex("id_on_table"));
+                EntityType entityType = EntityType.values()[cursor.getInt(cursor.getColumnIndexOrThrow("entity_type"))];
                 if (itemName.toLowerCase(Locale.getDefault()).contains(constraintString)) {
-                    filteredCursor.addRow(new Object[]{id++, itemName});
+                    filteredCursor.addRow(new Object[]{id++, itemName, idOnTable, entityType.ordinal()});
                 }
             }
         }
