@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:backgroundTint="@color/white"
-    tools:context=".CategoriesFragment">
+    tools:context=".fragments.CategoriesFragment">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView
@@ -38,7 +38,7 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="24dp"
             android:layout_marginBottom="24dp"
-            android:backgroundTint="@color/red"
+            android:backgroundTint="@color/fab_color"
             android:clickable="true"
             android:src="@drawable/bin_icon"
             app:tint="@color/white"

@@ -16,6 +16,9 @@ import ihm.android.sortirametz.dao.SiteDao;
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
 import ihm.android.sortirametz.entities.CategorieEntity;
 import ihm.android.sortirametz.entities.RawSiteEntity;
+import ihm.android.sortirametz.fragments.CategoriesFragment;
+import ihm.android.sortirametz.fragments.MapFragment;
+import ihm.android.sortirametz.fragments.SitesFragment;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -63,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
                     transaction.setReorderingAllowed(true)
                             .add(R.id.fragmentContainerView, sitesFragment, "SitesFragment");
                 } else {
-                    sitesFragment.refresh();
                     transaction.setReorderingAllowed(true)
                             .show(sitesFragment);
                 }
@@ -73,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
                     transaction.setReorderingAllowed(true)
                             .add(R.id.fragmentContainerView, categoriesFragment, "CategoriesFragment");
                 } else {
-                    categoriesFragment.refresh();
                     transaction.setReorderingAllowed(true)
                             .show(categoriesFragment);
                 }
@@ -93,9 +94,9 @@ public class MainActivity extends AppCompatActivity {
         SiteDao siteDao = db.siteDao();
         CategorieDao categorieDao = db.categorieDao();
 
-        CategorieEntity categorie1 = new CategorieEntity("Marché");
+        CategorieEntity categorie1 = new CategorieEntity("Autre"); // celle-ci doit être mise en première (valeur par défaut ne peux pas etre en première)
         CategorieEntity categorie2 = new CategorieEntity("Boulangerie");
-        CategorieEntity categorie3 = new CategorieEntity("Autre");
+        CategorieEntity categorie3 = new CategorieEntity("Marche");
 
         categorieDao.insertCategories(categorie1);
         categorieDao.insertCategories(categorie2);

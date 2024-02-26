@@ -19,26 +19,21 @@ import java.util.ArrayList;
 
 import ihm.android.sortirametz.R;
 import ihm.android.sortirametz.entities.SiteEntity;
+import ihm.android.sortirametz.listener.ButtonShowOnMapListener;
+import ihm.android.sortirametz.listener.CheckBoxListener;
 
 public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecyclerViewAdapter.ViewHolder> {
 
     private final ArrayList<SiteEntity> sitesList;
     private final Context context;
     private final ButtonShowOnMapListener buttonShowOnMapListener;
-    private final CheckBoxListener checkBoxListener;
+    private final CheckBoxListener<SiteEntity> checkBoxListener;
 
-    public interface ButtonShowOnMapListener {
-        void onButtonClick(SiteEntity site);
-    }
-
-    public interface CheckBoxListener {
-        void onCheckBoxClick(SiteEntity site, boolean isChecked);
-    }
 
     public SitesRecyclerViewAdapter(Context context,
                                     ArrayList<SiteEntity> sitesList,
                                     ButtonShowOnMapListener buttonShowOnMapListener,
-                                    CheckBoxListener checkBoxListener) {
+                                    CheckBoxListener<SiteEntity> checkBoxListener) {
         this.sitesList = sitesList;
         this.context = context;
         this.buttonShowOnMapListener = buttonShowOnMapListener;
@@ -78,12 +73,12 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
         private final CheckBox checkBox;
 
         private final ButtonShowOnMapListener buttonShowOnMapListener;
-        private final CheckBoxListener checkBoxListener;
+        private final CheckBoxListener<SiteEntity> checkBoxListener;
 
 
         public ViewHolder(@NonNull View itemView,
                           ButtonShowOnMapListener buttonShowOnMapListener,
-                          CheckBoxListener checkBoxListener) {
+                          CheckBoxListener<SiteEntity> checkBoxListener) {
             super(itemView);
 
             imageSiteView = itemView.findViewById(R.id.imageSiteView);

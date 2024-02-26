@@ -4,7 +4,7 @@ import androidx.room.Embedded;
 import androidx.room.Ignore;
 import androidx.room.Relation;
 
-public class SiteEntity {
+public class SiteEntity implements SearchableItem {
     @Embedded
     private RawSiteEntity site;
 
@@ -36,5 +36,15 @@ public class SiteEntity {
 
     public void setCategorie(CategorieEntity categorie) {
         this.categorie = categorie;
+    }
+
+    @Override
+    public String getNom() {
+        return site.getNom();
+    }
+
+    @Override
+    public int getId() {
+        return site.getId();
     }
 }

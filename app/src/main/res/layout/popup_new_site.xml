@@ -73,7 +73,7 @@
                     android:textStyle="bold" />
 
                 <EditText
-                    android:id="@+id/editNomSitePopup"
+                    android:id="@+id/editNomCategoriePopup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_span="3"
@@ -111,7 +111,7 @@
 
             <TableRow
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" >
+                android:layout_height="match_parent">
 
                 <TextView
                     android:id="@+id/textView12"
@@ -123,7 +123,7 @@
                     android:textStyle="bold" />
 
                 <Spinner
-                    android:id="@+id/spinnerCategoriePopup"
+                    android:id="@+id/spinnerMetrique"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_span="3"
@@ -198,7 +198,7 @@
         </TableLayout>
 
         <Button
-            android:id="@+id/createSiteButton"
+            android:id="@+id/setSearchRadiusButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="15dp"

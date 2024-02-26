@@ -1,9 +1,12 @@
-package ihm.android.sortirametz;
+package ihm.android.sortirametz.fragments;
 
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -17,12 +20,16 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.geojson.Feature;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import ihm.android.sortirametz.R;
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
 import ihm.android.sortirametz.entities.RawSiteEntity;
 import ihm.android.sortirametz.entities.SiteEntity;
+import ihm.android.sortirametz.listener.CheckBoxListener;
 import ihm.android.sortirametz.utils.FeatureBuilder;
 import ihm.android.sortirametz.utils.SitesRecyclerViewAdapter;
 
@@ -76,41 +83,36 @@ public class SitesFragment extends Fragment {
 
         }, (site, isChecked) -> {
             // Ici il faut ajouter ou retirer le site de la liste des sites sélectionnés
+
             if (isChecked) {
                 sitesSelected.add(site.getSite());
             } else {
                 sitesSelected.remove(site.getSite());
             }
+
+            FloatingActionButton deleteButton = view.findViewById(R.id.deleteButton);
+            deleteButton.setEnabled(sitesSelected.size() > 0);
+
         });
 
         recyclerView.setAdapter(adapter);
 
         FloatingActionButton deleteButton = view.findViewById(R.id.deleteButton);
+        deleteButton.setEnabled(false);
         deleteButton.setOnClickListener(v -> {
             SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
             db.siteDao().deleteSites(sitesSelected);
-            removeSiteFromRecyclerView(sitesSelected);
+            deleteButton.setEnabled(false);
         });
 
-        refresh();
-    }
-
-    public void removeSiteFromRecyclerView(List<RawSiteEntity> sitesSelected) {
-        for (RawSiteEntity site : sitesSelected) {
-            sitesList.removeIf(s -> s.getSite().getId() == site.getId());
-        }
-
-        sitesSelected.clear();
-        adapter.notifyDataSetChanged();
-    }
-
-    public void refresh() {
-        sitesList.clear();
-        Log.i("SitesFragment", sitesList.size() + "");
         SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
-        sitesList.addAll(db.siteDao().getAllSites());
-        Log.i("SitesFragment", sitesList.size() + "");
-        Log.i("SitesFragment", db.siteDao().getAllSites().size() + "");
-        adapter.notifyDataSetChanged();
+        db.siteDao().getAllSitesLiveData().observe(getViewLifecycleOwner(), sites -> {
+            sitesList.clear();
+            sitesList.addAll(sites);
+            sitesSelected.clear();
+            adapter.notifyDataSetChanged();
+        });
     }
+
+
 }

@@ -9,8 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MarkersHandler extends ViewModel {
+public class MarkersHandler extends ViewModel{
 
+    /**
+     *
+     */
     private final MutableLiveData<List<Feature>> features;
 
     public MarkersHandler() {

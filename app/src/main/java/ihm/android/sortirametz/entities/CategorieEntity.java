@@ -10,13 +10,13 @@ import androidx.room.PrimaryKey;
  * Représentation d'une catégorie au niveau de la base de donnée
  */
 @Entity(tableName = "categories")
-public class CategorieEntity {
+public class CategorieEntity implements SearchableItem {
 
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id_categorie")
     private int id;
 
-    @ColumnInfo(name = "nom_categorie")
+    @ColumnInfo(name = "nom_categorie", collate = ColumnInfo.NOCASE)
     private String nom;
 
 
@@ -61,4 +61,5 @@ public class CategorieEntity {
     public String toString() {
         return  "[" + id + "," + nom + "]";
     }
+
 }

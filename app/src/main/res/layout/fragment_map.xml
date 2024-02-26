@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".MapFragment">
+    tools:context=".fragments.MapFragment">
 
     <LinearLayout
         android:id="@+id/linearLayout"
@@ -28,7 +28,7 @@
         </SearchView>
 
         <ImageButton
-            android:id="@+id/imageButton"
+            android:id="@+id/parametersButton"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:layout_weight="0"
@@ -45,6 +45,49 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
+
+            <FrameLayout
+                android:id="@+id/searchInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="invisible"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <LinearLayout
+                    android:id="@+id/layout"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="20dp"
+                    android:background="@drawable/popup_background"
+                    android:elevation="10dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/textView10"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_margin="4dp"
+                        android:layout_weight="3"
+                        android:text="rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr" />
+
+                    <ImageButton
+                        android:id="@+id/cancelButton"
+                        android:layout_width="36dp"
+                        android:layout_height="30dp"
+                        android:layout_weight="1"
+                        android:backgroundTint="@color/white"
+                        android:src="@drawable/small_cancel_icon"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+                </LinearLayout>
+            </FrameLayout>
 
             <Button
                 android:id="@+id/centerOnUserButton"

@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".SitesFragment"
+    tools:context=".fragments.SitesFragment"
     android:background="@color/white">
 
     <TextView
@@ -26,7 +26,7 @@
         android:id="@+id/searchView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/grey"
+        android:background="@color/gray"
         android:elevation="5dp" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -49,14 +49,13 @@
             android:layout_height="wrap_content"
             android:layout_marginEnd="24dp"
             android:layout_marginBottom="24dp"
-            android:backgroundTint="@color/red"
+            android:backgroundTint="@color/fab_color"
             android:clickable="true"
             android:src="@drawable/bin_icon"
-            app:tint="@color/white"
-            app:backgroundTintMode="add"
             app:fabCustomSize="65dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:maxImageSize="50dp"/>
+            app:maxImageSize="50dp"
+            app:tint="@color/white" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 </LinearLayout>

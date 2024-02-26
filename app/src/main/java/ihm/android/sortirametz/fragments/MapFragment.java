@@ -1,7 +1,8 @@
-package ihm.android.sortirametz;
+package ihm.android.sortirametz.fragments;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.database.MatrixCursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -11,7 +12,9 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,14 +50,20 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import ihm.android.sortirametz.BuildConfig;
+import ihm.android.sortirametz.R;
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
 import ihm.android.sortirametz.entities.CategorieEntity;
 import ihm.android.sortirametz.entities.RawSiteEntity;
+import ihm.android.sortirametz.entities.SearchableItem;
 import ihm.android.sortirametz.entities.SiteEntity;
 import ihm.android.sortirametz.model.MarkersHandler;
+import ihm.android.sortirametz.model.Parameters;
+import ihm.android.sortirametz.utils.CustomCursorAdapter;
 import ihm.android.sortirametz.utils.FeatureBuilder;
 import ihm.android.sortirametz.utils.SiteArrayAdapter;
 
@@ -66,6 +75,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private MapboxMap mapboxMap;
     private Button centerOnUserButton;
     private MarkersHandler markersHandler;
+    private Parameters parameters;
 
     public MapFragment() {
         // Constructeur vide requis
@@ -74,20 +84,25 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_map, container, false);
-    }
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+        View view = inflater.inflate(R.layout.fragment_map, container, false);
 
         mapView = view.findViewById(R.id.mapView);
-        markersHandler = new MarkersHandler();
+        markersHandler = new ViewModelProvider(this).get(MarkersHandler.class);
+        parameters = new ViewModelProvider(this).get(Parameters.class);
+
         if (savedInstanceState != null) {
             mapView.onCreate(savedInstanceState);
         }
 
         checkPermissons();
+
+        return view;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
         centerOnUserButton = (Button) view.findViewById(R.id.centerOnUserButton);
         centerOnUserButton.setOnClickListener(v -> {
@@ -220,6 +235,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         // On crée un ViewModel pour gérer les marqueurs
         markersHandler.getFeatures().observe(this, features -> {
             mapboxMap.getStyle(style -> {
+                Log.i("MapFragment", features.size() + " features");
                 style.removeLayer("sites-layer");
                 style.removeSource("sites-source");
 
@@ -246,6 +262,38 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             showSelectionPopup(point);
             return true;
         });
+
+        // On ajoute un listener pour les clicls sur l'enrenage qui ouvre un popup pour définir
+        // le rayon de recherche
+        ImageButton parametersButton = requireView().findViewById(R.id.parametersButton);
+        parametersButton.setOnClickListener(v -> {
+            showSetSearchRadiusPopup();
+        });
+
+        SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
+        db.siteDao().getAllSitesLiveData().observe(this, sites -> {
+            this.updateSearchCompletion();
+        });
+        db.categorieDao().getAllCategoriesLiveData().observe(this, categories -> {
+            this.updateSearchCompletion();
+        });
+
+    }
+
+    private void updateSearchCompletion() {
+        SearchView searchView = requireView().findViewById(R.id.searchView);
+        MatrixCursor cursor = new MatrixCursor(new String[]{"_id", "nom_site"});
+        SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
+        List<SearchableItem> searchableItemList = new ArrayList<>();
+        searchableItemList.addAll(db.categorieDao().getAllCategories());
+        searchableItemList.addAll(db.siteDao().getAllSites());
+
+        for (SearchableItem item : searchableItemList) {
+            cursor.addRow(new Object[]{item.getId(), item.getNom()});
+        }
+
+        CustomCursorAdapter adapter = new CustomCursorAdapter(requireContext(), cursor);
+        searchView.setSuggestionsAdapter(adapter);
     }
 
     /**
@@ -303,7 +351,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
         List<CategorieEntity> categories = db.categorieDao().getAllCategories();
         SiteArrayAdapter adapter = new SiteArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, categories);
-        Spinner spinnerCategoriePopup = popupView.findViewById(R.id.spinnerCategoriePopup);
+        Spinner spinnerCategoriePopup = popupView.findViewById(R.id.spinnerMetrique);
         spinnerCategoriePopup.setAdapter(adapter);
 
 
@@ -314,9 +362,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         });
 
         // Quand on appuie sur le bouton créer un site cela crée un nouveau site
-        Button createSiteButton = popupView.findViewById(R.id.createSiteButton);
+        Button createSiteButton = popupView.findViewById(R.id.setSearchRadiusButton);
         createSiteButton.setOnClickListener(v -> {
-            EditText editNomSitePopup = popupView.findViewById(R.id.editNomSitePopup);
+            EditText editNomSitePopup = popupView.findViewById(R.id.editNomCategoriePopup);
             EditText editAdresseSitePopup = popupView.findViewById(R.id.editAdresseSitePopup);
             EditText editResumeSitePopup = popupView.findViewById(R.id.editResumeSitePopup);
 
@@ -344,6 +392,61 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                 zoomOnSite(siteEntity);
                 popupWindow.dismiss();
             }
+        });
+
+        // Show Popup
+        popupWindow.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
+    }
+
+    /**
+     * Affiche un popup pour définir le rayon de recherche
+     */
+    private void showSetSearchRadiusPopup() {
+        // Popup Creation
+        LayoutInflater inflater = (LayoutInflater) requireContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup_parameters, null);
+
+        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+        popupWindow.setFocusable(true);
+        popupWindow.setTouchable(true);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_spinner_item,
+                new String[]{"m", "km"});
+        Spinner spinnerMetrique = popupView.findViewById(R.id.spinnerMetrique);
+        spinnerMetrique.setAdapter(adapter);
+
+        EditText editRadius = popupView.findViewById(R.id.editRadius);
+        editRadius.setText(String.valueOf(parameters.getSearchRadius().getValue()));
+
+        // Quand on appuie sur le bouton cancel cela ferma le popup
+        ImageButton cancelButton = popupView.findViewById(R.id.cancelButton);
+        cancelButton.setOnClickListener(v -> {
+            popupWindow.dismiss();
+        });
+
+        // Quand on appuie sur le bouton cela applique le rayon de recherche
+        Button setSearchRadiusButton = popupView.findViewById(R.id.setSearchRadiusButton);
+        setSearchRadiusButton.setOnClickListener(v -> {
+
+            String metrique = spinnerMetrique.getSelectedItem().toString();
+            double searchRadius = Double.parseDouble(editRadius.getText().toString());
+
+            if (metrique.equals("km")) {
+                searchRadius *= 1000.;
+                searchRadius = Math.round(searchRadius);
+            } else {
+                searchRadius = Math.round(searchRadius);
+            }
+
+            if (searchRadius < 10 || searchRadius > 1000000) {
+                Toast.makeText(requireContext(), "Le rayon de recherche doit être compris entre 10 mètres et 10 000 km ", Toast.LENGTH_SHORT).show();
+            } else {
+                parameters.setSearchRadius((int) searchRadius);
+                popupWindow.dismiss();
+            }
+
         });
 
         // Show Popup
@@ -442,4 +545,5 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         super.onSaveInstanceState(outState);
         mapView.onSaveInstanceState(outState);
     }
+
 }

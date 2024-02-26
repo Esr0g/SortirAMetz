@@ -1,5 +1,6 @@
 package ihm.android.sortirametz.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
@@ -36,9 +37,12 @@ public interface SiteDao {
      * Récupération de tous les sites avec leur catégorie
      */
     @Transaction
-    @Query("SELECT * FROM SITES")
+    @Query("SELECT * FROM SITES ORDER BY nom_site")
     List<SiteEntity> getAllSites();
 
+    @Transaction
+    @Query("SELECT * FROM SITES ORDER BY nom_site")
+    LiveData<List<SiteEntity>> getAllSitesLiveData();
     /**
      * Suppression de la liste des sites
      */

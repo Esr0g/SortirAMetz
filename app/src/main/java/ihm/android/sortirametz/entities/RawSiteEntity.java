@@ -1,6 +1,7 @@
 package ihm.android.sortirametz.entities;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
@@ -13,14 +14,14 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "sites", foreignKeys = @ForeignKey(entity = CategorieEntity.class,
         parentColumns = "id_categorie",
         childColumns = "id_categorie",
-        onDelete = ForeignKey.SET_NULL))
+        onDelete = ForeignKey.SET_DEFAULT))
 public class RawSiteEntity {
 
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id_site")
     private int id;
 
-    @ColumnInfo(name = "nom_site")
+    @ColumnInfo(name = "nom_site", collate = ColumnInfo.NOCASE)
     private String nom;
 
     @ColumnInfo(name = "latitude")
@@ -32,7 +33,8 @@ public class RawSiteEntity {
     @ColumnInfo(name = "adresse")
     private String adresse;
 
-    @ColumnInfo(name = "id_categorie")
+
+    @ColumnInfo(name = "id_categorie", defaultValue = "1")
     private int idCategorie;
 
     @ColumnInfo(name = "resume")
