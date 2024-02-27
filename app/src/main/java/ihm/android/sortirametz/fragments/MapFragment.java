@@ -40,6 +40,7 @@ import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.LocationComponentOptions;
+import com.mapbox.mapboxsdk.location.OnLocationClickListener;
 import com.mapbox.mapboxsdk.location.engine.LocationEngineCallback;
 import com.mapbox.mapboxsdk.location.engine.LocationEngineRequest;
 import com.mapbox.mapboxsdk.location.engine.LocationEngineResult;
@@ -226,6 +227,11 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             Bitmap markerBitmap = BitmapFactory.decodeResource(getResources(),
                     com.mapbox.mapboxsdk.R.drawable.maplibre_marker_icon_default);
             style.addImage("marker-icon", markerBitmap);
+
+            // Permet d'afficher un popup lors du click sur la position de l'utilisateur
+            locationComponent.addOnLocationClickListener(() -> {
+                showCreateSitePopup(new LatLng(locationComponent.getLastKnownLocation().getLatitude(), locationComponent.getLastKnownLocation().getLongitude()));
+            });
         });
 
         // Lorsque la caméra n'est plus centrée sur l'utilisateur on affiche
@@ -343,6 +349,70 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             }
         });
 
+        // Un clic sur un marqueur ouvre un popup d'informations sur le marqueur cliqué
+        mapboxMap.addOnMapClickListener(point -> {
+            PointF screenPoint = mapboxMap.getProjection().toScreenLocation(point);
+            List<Feature> features = mapboxMap.queryRenderedFeatures(screenPoint, "sites-layer");
+
+            if (features.size() > 0) {
+                // Un ou plusieurs marqueurs ont été cliqués
+                for (Feature feature : features) {
+                    // Faites quelque chose avec chaque marqueur cliqué
+                    int siteId = (int) Double.parseDouble(feature.getStringProperty("siteId"));
+                    showPopuInfoSite(siteId);
+                }
+                return true;
+            } else {
+                return false;
+            }
+        });
+
+    }
+
+    /**
+     * Permet d'afficher un popup lorsque l'utilisateur appuie sur un marqueur
+     * @param siteId
+     */
+    private void showPopuInfoSite(int siteId) {
+        // Popup Creation
+        LayoutInflater inflater = (LayoutInflater) requireContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View popupView = inflater.inflate(R.layout.popup_show_site, null);
+
+        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+
+        popupWindow.setFocusable(true);
+        popupWindow.setTouchable(true);
+
+        // Quand on appuie sur le bouton cancel cela ferma le popup
+        ImageButton cancelButton = popupView.findViewById(R.id.cancelButton);
+        cancelButton.setOnClickListener(v -> {
+            popupWindow.dismiss();
+        });
+
+        SortirAMetzDatabase db = SortirAMetzDatabase.getInstance(requireContext());
+        SiteEntity siteEntity = db.siteDao().getById(siteId);
+
+        ((TextView) popupView.findViewById(R.id.nameTextView)).setText(siteEntity.getNom());
+        ((TextView) popupView.findViewById(R.id.addresseTextView)).setText(siteEntity.getSite().getAdresse());
+        ((TextView) popupView.findViewById(R.id.categorieTextView)).setText(siteEntity.getCategorie().getNom());
+        ((TextView) popupView.findViewById(R.id.resumeTextView)).setText(siteEntity.getSite().getResume());
+
+        Location siteLocation = new Location("provider");
+        siteLocation.setLongitude(siteEntity.getSite().getLongitude());
+        siteLocation.setLatitude(siteEntity.getSite().getLatitude());
+        double distance = siteLocation.distanceTo(mapboxMap.getLocationComponent().getLastKnownLocation());
+
+        if (distance / 1000. > 1) {
+            ((TextView) popupView.findViewById(R.id.distanceTextView)).setText(String.format("%.3f",distance/1000.) + " km");
+        } else {
+            ((TextView) popupView.findViewById(R.id.distanceTextView)).setText(((int)Math.round(distance)) + " m");
+        }
+
+        ((TextView) popupView.findViewById(R.id.latTexteView)).setText(String.format("%.6f", siteEntity.getSite().getLatitude()));
+        ((TextView) popupView.findViewById(R.id.longTewtView)).setText(String.format("%.6f", siteEntity.getSite().getLongitude()));
+
+        // Show Popup
+        popupWindow.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
     }
 
     // Cette fonction permet d'afficher un cercle ainsi que tous les POI dans un périmètre
