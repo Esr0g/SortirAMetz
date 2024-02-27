@@ -88,6 +88,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     private Parameters parameters;
     private Pair<Integer, EntityType> currentSearchItem;
     private boolean searchFromLocation = true;
+    private LatLng selectedPoint = null;
 
     public MapFragment() {
         // Constructeur vide requis
@@ -246,7 +247,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         // On crée un ViewModel pour gérer les marqueurs
         markersHandler.getFeatures().observe(this, features -> {
             mapboxMap.getStyle(style -> {
-                Log.i("MapFragment", features.size() + " features");
                 style.removeLayer("sites-layer");
                 style.removeSource("sites-source");
 
@@ -327,6 +327,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                             markersHandler.addMarker(feature);
                             zoomOnSite(siteEntity);
                             currentSearchItem = null;
+                            selectedPoint = null;
+                            searchFromLocation = true;
                         case Category:
                             showSiteFromCategoryOnMap();
                     }
@@ -357,8 +359,19 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         Location siteLoctaion = new Location("provider");
                         siteLoctaion.setLatitude(site.getSite().getLatitude());
                         siteLoctaion.setLongitude(site.getSite().getLongitude());
-                        float distance = mapboxMap.getLocationComponent().getLastKnownLocation().distanceTo(siteLoctaion);
-                        Log.i("msg", "Distance : " + distance);
+
+                        float distance = 0f;
+                        if (!this.searchFromLocation && this.selectedPoint != null) {
+                            Location selectecdLocation = new Location("provider");
+                            selectecdLocation.setLatitude(this.selectedPoint.getLatitude());
+                            selectecdLocation.setLongitude(this.selectedPoint.getLongitude());
+
+                            distance = selectecdLocation.distanceTo(siteLoctaion);
+                        } else {
+
+                            distance = mapboxMap.getLocationComponent().getLastKnownLocation().distanceTo(siteLoctaion);
+                        }
+
                         return distance <= parameters.getSearchRadius().getValue();
                     }).collect(Collectors.toList());
 
@@ -372,12 +385,22 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
+    /**
+     * Permet d'afficher la zone de recherche sous la forme d'un cercle
+     */
     private void showSearchZone() {
         mapboxMap.getStyle(style -> {
             style.removeLayer("circle-layer-id");
             style.removeSource("source-id");
-            Point position = Point.fromLngLat(locationComponent.getLastKnownLocation().getLongitude(),
-                    locationComponent.getLastKnownLocation().getLatitude()); // Remplacez par vos coordonnées actuelles
+
+            Point position;
+
+            if (!this.searchFromLocation && this.selectedPoint != null) {
+                position = Point.fromLngLat(this.selectedPoint.getLongitude(), this.selectedPoint.getLatitude());
+            } else {
+                position = Point.fromLngLat(locationComponent.getLastKnownLocation().getLongitude(),
+                    locationComponent.getLastKnownLocation().getLatitude());
+            }
             GeoJsonSource geoJsonSource = new GeoJsonSource("source-id", position);
             style.addSource(geoJsonSource);
 
@@ -397,6 +420,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         showSearchInfoPopup();
     }
 
+    /**
+     * Affiche un popup qui indique qu'une recherche est appliquée
+     */
     private void showSearchInfoPopup() {
         requireView().findViewById(R.id.searchInfo).setVisibility(View.VISIBLE);
         String from = "";
@@ -410,6 +436,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         requireView().findViewById(R.id.cancelButton).setOnClickListener(v -> {
             requireView().findViewById(R.id.searchInfo).setVisibility(View.INVISIBLE);
             currentSearchItem = null;
+            this.selectedPoint = null;
+            this.searchFromLocation = true;
             markersHandler.removeAllMarkers();
             ((SearchView) requireView().findViewById(R.id.searchView)).setQuery("", false);
             ((SearchView) requireView().findViewById(R.id.searchView)).clearFocus();
@@ -417,6 +445,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         });
     }
 
+    /**
+     * Permet de supprimé la zone de recherche
+     */
     private void hideSearchZone() {
         mapboxMap.getStyle(style -> {
             style.removeLayer("circle-layer-id");
@@ -424,6 +455,12 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         });
     }
 
+    /**
+     * Permet de calculer le rayon du cercle en pixels en fonction du zoom sur la map
+     * et de la distance indiquée dans les paramètres
+     * @param meters
+     * @return
+     */
     private double calculatedRadius(double meters) {
         CameraPosition cameraPosition = mapboxMap.getCameraPosition();
         Projection projection = mapboxMap.getProjection();
@@ -434,6 +471,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         return meters / metersPerPixel;
     }
 
+    /**
+     * Permet de configurer l'auto-complétion de la barre de recherche
+     */
     private void updateSearchCompletion() {
         SearchView searchView = requireView().findViewById(R.id.searchView);
         MatrixCursor cursor = new MatrixCursor(new String[]{"_id", "name", "id_on_table", "entity_type"});
@@ -480,8 +520,44 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             showCreateSitePopup(point);
         });
 
+        // Quand on appuie sur le bouton on faitune recherche à partir de la position choisie
+        Button searchFromHereButton = popupView.findViewById(R.id.searchFromHereButton);
+        searchFromHereButton.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            setUpSearchFromThisPoint(point);
+        });
+
         // Show Popup
         popupWindow.showAtLocation(requireView(), Gravity.CENTER, 0, 0);
+    }
+
+    private void setUpSearchFromThisPoint(LatLng latLng) {
+        mapboxMap.getStyle(style -> {
+            style.removeLayer("sites-layer");
+            style.removeSource("sites-source");
+
+            Point point = Point.fromLngLat(latLng.getLongitude(), latLng.getLatitude());
+
+            style.addSource(new GeoJsonSource("sites-source", Feature.fromGeometry(point)));
+
+            SymbolLayer sitesLayer = new SymbolLayer("sites-layer", "sites-source")
+                    .withProperties(
+                            PropertyFactory.iconImage("marker-icon"),
+                            PropertyFactory.iconSize(1.4f)
+                    );
+
+            style.addLayer(sitesLayer);
+
+            mapboxMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                            new LatLng(latLng.getLatitude(), latLng.getLongitude()),
+                            16f),
+                    1500);
+
+            requireView().findViewById(R.id.searchView).requestFocus();
+
+            this.searchFromLocation = false;
+            this.selectedPoint = latLng;
+        });
     }
 
     /**

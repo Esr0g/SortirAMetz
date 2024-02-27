@@ -6,30 +6,23 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.SearchView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.geojson.Feature;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.List;
 
 import ihm.android.sortirametz.R;
 import ihm.android.sortirametz.databases.SortirAMetzDatabase;
 import ihm.android.sortirametz.entities.RawSiteEntity;
 import ihm.android.sortirametz.entities.SiteEntity;
-import ihm.android.sortirametz.listener.CheckBoxListener;
 import ihm.android.sortirametz.utils.FeatureBuilder;
 import ihm.android.sortirametz.utils.SitesRecyclerViewAdapter;
 
@@ -60,11 +53,6 @@ public class SitesFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        SearchView searchView = (SearchView) view.findViewById(R.id.searchView);
-        searchView.setOnClickListener(v -> {
-            searchView.setIconified(false);
-        });
 
         RecyclerView recyclerView = view.findViewById(R.id.recyclerView);
         adapter = new SitesRecyclerViewAdapter(getContext(), sitesList, site -> {
