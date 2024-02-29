@@ -19,24 +19,24 @@ import java.util.ArrayList;
 
 import ihm.android.sortirametz.R;
 import ihm.android.sortirametz.entities.SiteEntity;
-import ihm.android.sortirametz.listener.ButtonShowOnMapListener;
+import ihm.android.sortirametz.listener.ButtonsSiteRecyclerListener;
 import ihm.android.sortirametz.listener.CheckBoxListener;
 
 public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecyclerViewAdapter.ViewHolder> {
 
     private final ArrayList<SiteEntity> sitesList;
     private final Context context;
-    private final ButtonShowOnMapListener buttonShowOnMapListener;
+    private final ButtonsSiteRecyclerListener buttonsSiteRecyclerListener;
     private final CheckBoxListener<SiteEntity> checkBoxListener;
 
 
     public SitesRecyclerViewAdapter(Context context,
                                     ArrayList<SiteEntity> sitesList,
-                                    ButtonShowOnMapListener buttonShowOnMapListener,
+                                    ButtonsSiteRecyclerListener buttonsSiteRecyclerListener,
                                     CheckBoxListener<SiteEntity> checkBoxListener) {
         this.sitesList = sitesList;
         this.context = context;
-        this.buttonShowOnMapListener = buttonShowOnMapListener;
+        this.buttonsSiteRecyclerListener = buttonsSiteRecyclerListener;
         this.checkBoxListener = checkBoxListener;
     }
 
@@ -46,7 +46,7 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.site_recycler_view_row, parent, false);
 
-        return new SitesRecyclerViewAdapter.ViewHolder(view, buttonShowOnMapListener, checkBoxListener);
+        return new SitesRecyclerViewAdapter.ViewHolder(view, buttonsSiteRecyclerListener, checkBoxListener);
     }
 
     @Override
@@ -71,13 +71,14 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
         private final TextView resumeView;
         private final Button showOnMapButton;
         private final CheckBox checkBox;
+        private final Button updateButton;
 
-        private final ButtonShowOnMapListener buttonShowOnMapListener;
+        private final ButtonsSiteRecyclerListener buttonsSiteRecyclerListener;
         private final CheckBoxListener<SiteEntity> checkBoxListener;
 
 
         public ViewHolder(@NonNull View itemView,
-                          ButtonShowOnMapListener buttonShowOnMapListener,
+                          ButtonsSiteRecyclerListener buttonsSiteRecyclerListener,
                           CheckBoxListener<SiteEntity> checkBoxListener) {
             super(itemView);
 
@@ -91,8 +92,9 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
             resumeView = itemView.findViewById(R.id.resumeView);
             showOnMapButton = itemView.findViewById(R.id.showOnMapButton);
             checkBox = itemView.findViewById(R.id.checkBox);
+            updateButton = itemView.findViewById(R.id.updateButton);
 
-            this.buttonShowOnMapListener = buttonShowOnMapListener;
+            this.buttonsSiteRecyclerListener = buttonsSiteRecyclerListener;
             this.checkBoxListener = checkBoxListener;
 
             itemView.setOnClickListener(v -> {
@@ -121,11 +123,15 @@ public class SitesRecyclerViewAdapter extends RecyclerView.Adapter<SitesRecycler
             checkBox.setChecked(false);
 
             showOnMapButton.setOnClickListener(v -> {
-                buttonShowOnMapListener.onButtonClick(site);
+                buttonsSiteRecyclerListener.onButtonShowOnMapClicked(site);
             });
 
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 checkBoxListener.onCheckBoxClick(site, isChecked);
+            });
+
+            updateButton.setOnClickListener(v -> {
+                buttonsSiteRecyclerListener.onButtonUpdateClicked(site);
             });
         }
 

@@ -6,6 +6,8 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import java.util.Objects;
+
 /**
  * Représentation d'une catégorie au niveau de la base de donnée
  */
@@ -65,6 +67,23 @@ public class CategorieEntity implements SearchableItem {
     @Override
     public String toString() {
         return  "[" + id + "," + nom + "]";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        CategorieEntity other = (CategorieEntity) obj;
+        return this.nom.equals(other.nom) && this.id == other.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id + nom);
     }
 
 }

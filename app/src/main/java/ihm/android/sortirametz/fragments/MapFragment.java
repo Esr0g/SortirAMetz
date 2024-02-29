@@ -265,7 +265,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                                 PropertyFactory.textField("{nom}"),
                                 PropertyFactory.iconAllowOverlap(true),
                                 PropertyFactory.textAllowOverlap(true),
-                                PropertyFactory.textOffset(new Float[]{0f, -2.5f})
+                                PropertyFactory.textOffset(new Float[]{0f, 1f})
                         );
 
                 style.addLayer(sitesLayer);

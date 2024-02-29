@@ -6,6 +6,7 @@ import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Transaction;
+import androidx.room.Update;
 
 import java.util.List;
 
@@ -56,4 +57,7 @@ public interface SiteDao {
     @Transaction
     @Query("SELECT * FROM sites WHERE id_categorie=:id")
     List<SiteEntity> getAllSitesOfCategoryId(int id);
+
+    @Update
+    void updateSite(RawSiteEntity rawSite);
 }
